@@ -121,27 +121,7 @@ class StreamlitChatPack(BaseLlamaPack):
     
         # Close the connection
         conn.close()
-                
-        # Sidebar Intro
-        st.sidebar.markdown('## App Created By')
-        st.sidebar.markdown("""
-        Harshad Suryawanshi: 
-        [Linkedin](https://www.linkedin.com/in/harshadsuryawanshi/), [Medium](https://harshadsuryawanshi.medium.com/), [X](https://twitter.com/HarshadSurya1c)
-        """)
-        
-        
-        st.sidebar.markdown('## Other Projects')
-        st.sidebar.markdown("""
-        - [Pokemon Go! Inspired AInimal GO! - Multimodal RAG App](https://www.linkedin.com/posts/harshadsuryawanshi_llamaindex-ai-deeplearning-activity-7134632983495327744-M7yy)
-        - [Building My Own GPT4-V with PaLM and Kosmos](https://lnkd.in/dawgKZBP)
-        - [AI Equity Research Analyst](https://ai-eqty-rsrch-anlyst.streamlit.app/)
-        - [Recasting "The Office" Scene](https://blackmirroroffice.streamlit.app/)
-        - [Story Generator](https://appstorycombined-agaf9j4ceit.streamlit.app/)
-        """)
-        
-        st.sidebar.markdown('## Disclaimer')
-        st.sidebar.markdown("""This application is for demonstration purposes only and may not cover all aspects of real-world data complexities. Please use it as a guide and not as a definitive source for decision-making.""")
-    
+              
         if "query_engine" not in st.session_state:  # Initialize the query engine
             st.session_state["query_engine"] = NLSQLTableQueryEngine(
                 sql_database=sql_database,
