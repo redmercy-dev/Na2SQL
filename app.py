@@ -66,7 +66,7 @@ class StreamlitChatPack(BaseLlamaPack):
             f"{self.page}💬"
         )
         st.info(
-            f"Explore Snowflake views with this AI-powered app. Pose any question and receive exact SQL queries.",
+            f"Hello to our AI powered SQL app. Pose any question and receive exact SQL queries.",
             icon="ℹ️",
         )
 
