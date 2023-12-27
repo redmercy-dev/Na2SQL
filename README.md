@@ -33,8 +33,3 @@ Welcome to the Natural Language to SQL demo project using LlamaIndex! This appli
 ```streamlit run app.py```
 
 
-## Feedback and Contributions
-Feel free to raise issues or submit pull requests if you think something can be improved or added. Your feedback is highly appreciated!
-
-### Developed by [Harshad Suryawanshi](https://www.linkedin.com/in/harshadsuryawanshi/)
-If you find this project useful, consider giving it a ⭐ on GitHub!
