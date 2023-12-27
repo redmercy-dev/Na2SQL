@@ -27,7 +27,7 @@ import sqlite3
 from llama_index import SQLDatabase, ServiceContext
 from llama_index.indices.struct_store import NLSQLTableQueryEngine
 
-os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
+os.environ['OPENAI_API_KEY'] ="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"
 
 
 class StreamlitChatPack(BaseLlamaPack):
@@ -38,8 +38,7 @@ class StreamlitChatPack(BaseLlamaPack):
         run_from_main: bool = False,
         **kwargs: Any,
     ) -> None:
-        """Init params."""
-        
+        """Initialize parameters."""
         self.page = page
 
     def get_modules(self) -> Dict[str, Any]:
@@ -48,8 +47,6 @@ class StreamlitChatPack(BaseLlamaPack):
 
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """Run the pipeline."""
-        import streamlit as st
-
         st.set_page_config(
             page_title=f"{self.page}",
             layout="centered",
@@ -57,19 +54,39 @@ class StreamlitChatPack(BaseLlamaPack):
             menu_items=None,
         )
 
-        if "messages" not in st.session_state:  # Initialize the chat messages history
+        if "messages" not in st.session_state:
             st.session_state["messages"] = [
-                {"role": "assistant", "content": f"Hello. Ask me anything related to the database."}
+                {"role": "assistant", "content": "Hello. Ask me anything related to the database."}
             ]
 
-        st.title(
-            f"{self.page}💬"
-        )
-        st.info(
-            f"Hello to our AI powered SQL app. Pose any question and receive exact SQL queries.",
-            icon="ℹ️",
-        )
+        st.title(f"{self.page}💬")
+        st.info("Hello to our AI powered SQL app. Pose any question and receive exact SQL queries.", icon="ℹ️")
 
+        # Upload a database file
+        db_file = st.sidebar.file_uploader("Upload your SQLite Database", type="db")
+        if db_file is not None:
+            # Save the uploaded file to a temporary location
+            temp_db_path = "temp_uploaded_db.db"
+            with open(temp_db_path, "wb") as f:
+                f.write(db_file.getbuffer())
+
+            # Create an SQLAlchemy engine using the uploaded file
+            engine = create_engine(f"sqlite:///{temp_db_path}")
+
+            # Sidebar for database schema viewer
+            st.sidebar.markdown("## Database Schema Viewer")
+            inspector = inspect(engine)
+            table_names = inspector.get_table_names()
+            selected_table = st.sidebar.selectbox("Select a Table", table_names)
+
+            # Display the selected table
+            if selected_table:
+                df = pd.read_sql_table(selected_table, engine)
+                st.sidebar.text(f"Data for table '{selected_table}':")
+                st.sidebar.dataframe(df)
+        else:
+            st.sidebar.error("Please upload a SQLite database file.")
+            return
         def add_to_message_history(role, content):
             message = {"role": role, "content": str(content)}
             st.session_state["messages"].append(
@@ -88,7 +105,6 @@ class StreamlitChatPack(BaseLlamaPack):
             sql_database = SQLDatabase(engine) #include all tables
 
             # Initialize LLM
-            #llm2 = PaLM(api_key=os.environ["GOOGLE_API_KEY"])  # Replace with your API key
             llm2 = OpenAI(temperature=0.1, model="gpt-3.5-turbo-1106")
 
             service_context = ServiceContext.from_defaults(llm=llm2, embed_model="local")
