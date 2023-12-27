@@ -32,7 +32,12 @@ os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
 
 class StreamlitChatPack(BaseLlamaPack):
 
-    def __init__(self, page: str = "Natural Language to SQL Query", run_from_main: bool = False, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        page: str = "Natural Language to SQL Query",
+        run_from_main: bool = False,
+        **kwargs: Any,
+    ) -> None:
         """Initialize parameters."""
         self.page = page
 
@@ -72,6 +77,56 @@ class StreamlitChatPack(BaseLlamaPack):
 
         if selected_table:
             df = pd.read_sql_table(selected_table, engine)
+            st.sidebar.text(f"Data for table '{selected_table}':")
+            st.sidebar.dataframe(df)
+        else:
+            st.sidebar.error("Please upload a SQLite database file.")
+            return
+        def add_to_message_history(role, content):
+            message = {"role": role, "content": str(content)}
+            st.session_state["messages"].append(
+                message
+            )  # Add response to message history
+
+        def get_table_data(table_name, conn):
+            query = f"SELECT * FROM {table_name}"
+            df = pd.read_sql_query(query, conn)
+            return df
+
+        @st.cache_resource
+        def load_db_llm():
+            # Load the SQLite database
+            engine = create_engine("sqlite:///ecommerce_platform1.db")
+            sql_database = SQLDatabase(engine) #include all tables
+
+            # Initialize LLM
+            llm2 = OpenAI(temperature=0.1, model="gpt-3.5-turbo-1106")
+
+            service_context = ServiceContext.from_defaults(llm=llm2, embed_model="local")
+            
+            return sql_database, service_context, engine
+
+        sql_database, service_context, engine = load_db_llm()
+
+
+       # Sidebar for database schema viewer
+        st.sidebar.markdown("## Database Schema Viewer")
+
+        # Create an inspector object
+        inspector = inspect(engine)
+
+        # Get list of tables in the database
+        table_names = inspector.get_table_names()
+
+        # Sidebar selection for tables
+        selected_table = st.sidebar.selectbox("Select a Table", table_names)
+
+        db_file = 'ecommerce_platform1.db'
+        conn = sqlite3.connect(db_file)
+    
+        # Display the selected table
+        if selected_table:
+            df = get_table_data(selected_table, conn)
             st.sidebar.text(f"Data for table '{selected_table}':")
             st.sidebar.dataframe(df)
     
