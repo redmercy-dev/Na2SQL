@@ -47,17 +47,23 @@ class StreamlitChatPack(BaseLlamaPack):
 
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """Run the pipeline."""
-        st.set_page_config(page_title=f"{self.page}", layout="centered", initial_sidebar_state="auto", menu_items=None)
+        st.set_page_config(
+            page_title=f"{self.page}",
+            layout="centered",
+            initial_sidebar_state="auto",
+            menu_items=None,
+        )
 
         if "messages" not in st.session_state:
-            st.session_state["messages"] = [{"role": "assistant", "content": "Hello. Ask me anything related to the database."}]
+            st.session_state["messages"] = [
+                {"role": "assistant", "content": "Hello. Ask me anything related to the database."}
+            ]
 
         st.title(f"{self.page}💬")
         st.info("Hello to our AI powered SQL app. Pose any question and receive exact SQL queries.", icon="ℹ️")
 
         # Upload a database file
         db_file = st.sidebar.file_uploader("Upload your SQLite Database", type="db")
-
         if db_file is not None:
             # Save the uploaded file to a temporary location
             temp_db_path = "temp_uploaded_db.db"
@@ -66,19 +72,18 @@ class StreamlitChatPack(BaseLlamaPack):
 
             # Create an SQLAlchemy engine using the uploaded file
             engine = create_engine(f"sqlite:///{temp_db_path}")
-        else:
-            engine = create_engine("sqlite:///ecommerce_platform1.db")  # Fallback to default DB if no file is uploaded
 
-        # Sidebar for database schema viewer
-        st.sidebar.markdown("## Database Schema Viewer")
-        inspector = inspect(engine)
-        table_names = inspector.get_table_names()
-        selected_table = st.sidebar.selectbox("Select a Table", table_names)
+            # Sidebar for database schema viewer
+            st.sidebar.markdown("## Database Schema Viewer")
+            inspector = inspect(engine)
+            table_names = inspector.get_table_names()
+            selected_table = st.sidebar.selectbox("Select a Table", table_names)
 
-        if selected_table:
-            df = pd.read_sql_table(selected_table, engine)
-            st.sidebar.text(f"Data for table '{selected_table}':")
-            st.sidebar.dataframe(df)
+            # Display the selected table
+            if selected_table:
+                df = pd.read_sql_table(selected_table, engine)
+                st.sidebar.text(f"Data for table '{selected_table}':")
+                st.sidebar.dataframe(df)
         else:
             st.sidebar.error("Please upload a SQLite database file.")
             return
