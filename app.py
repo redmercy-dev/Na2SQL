@@ -27,17 +27,12 @@ import sqlite3
 from llama_index import SQLDatabase, ServiceContext
 from llama_index.indices.struct_store import NLSQLTableQueryEngine
 
-os.environ['OPENAI_API_KEY'] ="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"
+os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
 
 
 class StreamlitChatPack(BaseLlamaPack):
 
-    def __init__(
-        self,
-        page: str = "Natural Language to SQL Query",
-        run_from_main: bool = False,
-        **kwargs: Any,
-    ) -> None:
+    def __init__(self, page: str = "Natural Language to SQL Query", run_from_main: bool = False, **kwargs: Any) -> None:
         """Initialize parameters."""
         self.page = page
 
@@ -47,23 +42,17 @@ class StreamlitChatPack(BaseLlamaPack):
 
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """Run the pipeline."""
-        st.set_page_config(
-            page_title=f"{self.page}",
-            layout="centered",
-            initial_sidebar_state="auto",
-            menu_items=None,
-        )
+        st.set_page_config(page_title=f"{self.page}", layout="centered", initial_sidebar_state="auto", menu_items=None)
 
         if "messages" not in st.session_state:
-            st.session_state["messages"] = [
-                {"role": "assistant", "content": "Hello. Ask me anything related to the database."}
-            ]
+            st.session_state["messages"] = [{"role": "assistant", "content": "Hello. Ask me anything related to the database."}]
 
         st.title(f"{self.page}💬")
         st.info("Hello to our AI powered SQL app. Pose any question and receive exact SQL queries.", icon="ℹ️")
 
         # Upload a database file
         db_file = st.sidebar.file_uploader("Upload your SQLite Database", type="db")
+
         if db_file is not None:
             # Save the uploaded file to a temporary location
             temp_db_path = "temp_uploaded_db.db"
@@ -72,66 +61,17 @@ class StreamlitChatPack(BaseLlamaPack):
 
             # Create an SQLAlchemy engine using the uploaded file
             engine = create_engine(f"sqlite:///{temp_db_path}")
-
-            # Sidebar for database schema viewer
-            st.sidebar.markdown("## Database Schema Viewer")
-            inspector = inspect(engine)
-            table_names = inspector.get_table_names()
-            selected_table = st.sidebar.selectbox("Select a Table", table_names)
-
-            # Display the selected table
-            if selected_table:
-                df = pd.read_sql_table(selected_table, engine)
-                st.sidebar.text(f"Data for table '{selected_table}':")
-                st.sidebar.dataframe(df)
         else:
-            st.sidebar.error("Please upload a SQLite database file.")
-            return
-        def add_to_message_history(role, content):
-            message = {"role": role, "content": str(content)}
-            st.session_state["messages"].append(
-                message
-            )  # Add response to message history
+            engine = create_engine("sqlite:///ecommerce_platform1.db")  # Fallback to default DB if no file is uploaded
 
-        def get_table_data(table_name, conn):
-            query = f"SELECT * FROM {table_name}"
-            df = pd.read_sql_query(query, conn)
-            return df
-
-        @st.cache_resource
-        def load_db_llm():
-            # Load the SQLite database
-            engine = create_engine("sqlite:///ecommerce_platform1.db")
-            sql_database = SQLDatabase(engine) #include all tables
-
-            # Initialize LLM
-            llm2 = OpenAI(temperature=0.1, model="gpt-3.5-turbo-1106")
-
-            service_context = ServiceContext.from_defaults(llm=llm2, embed_model="local")
-            
-            return sql_database, service_context, engine
-
-        sql_database, service_context, engine = load_db_llm()
-
-
-       # Sidebar for database schema viewer
+        # Sidebar for database schema viewer
         st.sidebar.markdown("## Database Schema Viewer")
-
-        # Create an inspector object
         inspector = inspect(engine)
-
-        # Get list of tables in the database
         table_names = inspector.get_table_names()
-
-        # Sidebar selection for tables
         selected_table = st.sidebar.selectbox("Select a Table", table_names)
 
-        db_file = 'ecommerce_platform1.db'
-        conn = sqlite3.connect(db_file)
-    
-        # Display the selected table
         if selected_table:
-            df = get_table_data(selected_table, conn)
+            df = pd.read_sql_table(selected_table, engine)
             st.sidebar.text(f"Data for table '{selected_table}':")
             st.sidebar.dataframe(df)
     
