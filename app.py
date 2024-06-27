@@ -1,21 +1,32 @@
 import streamlit as st
-from sqlalchemy import create_engine, inspect
-from typing import Dict, Any
-from llama_index.core import VectorStoreIndex,SimpleDirectoryReader,ServiceContext,PromptTemplate
-from llama_index.core import (
-    load_index_from_storage,
-    load_indices_from_storage,
-    load_graph_from_storage,
+from sqlalchemy import (
+    create_engine,
+    MetaData,
+    Table,
+    Column,
+    String,
+    Integer,
+    inspect,
+    select,
+    insert,
+    text
 )
-
+from typing import Dict, Any
+from llama_index.core import SQLDatabase
 from llama_index.llms.openai import OpenAI
+from llama_index.core.query_engine import NLSQLTableQueryEngine
+from llama_index.core.indices.struct_store.sql_query import SQLTableRetrieverQueryEngine
+from llama_index.core.objects import SQLTableNodeMapping, ObjectIndex, SQLTableSchema
+from llama_index.core import VectorStoreIndex
+from llama_index.core.retrievers import NLSQLRetriever
 import openai
 import os
 import pandas as pd
+from markdown import Markdown
 
 os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
 
-class StreamlitChatPack(BasePack):
+class StreamlitChatPack:
 
     def __init__(
         self,
@@ -25,10 +36,6 @@ class StreamlitChatPack(BasePack):
     ) -> None:
         """Initialize parameters."""
         self.page = page
-
-    def get_modules(self) -> Dict[str, Any]:
-        """Get modules."""
-        return {}
 
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """Run the pipeline."""
@@ -61,7 +68,7 @@ class StreamlitChatPack(BasePack):
             sql_database = SQLDatabase(engine)  # Include all tables from the uploaded database
 
             # Initialize LLM with your desired settings
-            llm2 = OpenAI(temperature=0.1, model="gpt-3.5-turbo-1106")
+            llm2 = OpenAI(temperature=0.1, model="gpt-3.5-turbo")
             service_context = ServiceContext.from_defaults(llm=llm2, embed_model="local")
 
             # Sidebar for database schema viewer
@@ -92,8 +99,8 @@ class StreamlitChatPack(BasePack):
             if "query_engine" not in st.session_state:
                 st.session_state["query_engine"] = NLSQLTableQueryEngine(
                     sql_database=sql_database,
-                    synthesize_response=True,
-                    service_context=service_context
+                    tables=table_names,
+                    llm=llm2
                 )
 
             for message in st.session_state["messages"]:
