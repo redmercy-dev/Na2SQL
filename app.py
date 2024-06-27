@@ -2,11 +2,8 @@ import streamlit as st
 from sqlalchemy import create_engine, inspect
 from typing import Dict, Any
 from llama_index.core import VectorStoreIndex,SimpleDirectoryReader,ServiceContext,PromptTemplate
-from llama_index import (
-    StorageContext,
-    load_index_from_storage,
-    SQLDatabase,
-)
+from llama_index import StorageContext, load_index_from_storage, SQLDatabase
+
 from llama_index.base_pack import BasePack
 from llama_index.llms import OpenAI
 import openai
