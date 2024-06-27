@@ -87,7 +87,7 @@ class StreamlitChatPack:
                 conn.close()
 
             # Initialize LLM with your desired settings
-            llm = OpenAI(temperature=0.1, model="gpt-3.5-turbo")
+            llm = OpenAI(temperature=0.1, model="gpt-4o")
 
             # Initialize the Query Engine
             query_engine = NLSQLTableQueryEngine(
