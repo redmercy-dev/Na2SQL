@@ -8,7 +8,7 @@ from llama_index.core import (
     load_graph_from_storage,
 )
 
-from llama_index.llms import OpenAI
+from llama_index.llms.openai import OpenAI
 import openai
 import os
 import pandas as pd
