@@ -6,8 +6,8 @@ from sqlalchemy import (
     Column,
     String,
     Integer,
-    inspect,
     select,
+    inspect,
     insert,
     text
 )
@@ -66,20 +66,11 @@ class StreamlitChatPack:
 
             sql_database = SQLDatabase(engine)  # Include all tables from the uploaded database
 
-            # Initialize LLM with your desired settings
-            llm2 = OpenAI(temperature=0.1, model="gpt-3.5-turbo")
-            service_context = ServiceContext.from_defaults(llm=llm2, embed_model="local")
-
             # Sidebar for database schema viewer
             st.sidebar.markdown("## Database Schema Viewer")
             inspector = inspect(engine)
             table_names = inspector.get_table_names()
             selected_table = st.sidebar.selectbox("Select a Table", table_names)
-
-            # Function to add messages to chat history
-            def add_to_message_history(role, content):
-                message = {"role": role, "content": str(content)}
-                st.session_state["messages"].append(message)
 
             # Function to get table data
             def get_table_data(table_name, conn):
@@ -95,12 +86,16 @@ class StreamlitChatPack:
                 st.sidebar.dataframe(df)
                 conn.close()
 
+            # Initialize LLM with your desired settings
+            llm = OpenAI(temperature=0.1, model="gpt-3.5-turbo")
+
+            # Initialize the Query Engine
+            query_engine = NLSQLTableQueryEngine(
+                sql_database=sql_database, tables=[selected_table], llm=llm
+            )
+
             if "query_engine" not in st.session_state:
-                st.session_state["query_engine"] = NLSQLTableQueryEngine(
-                    sql_database=sql_database,
-                    tables=table_names,
-                    llm=llm2
-                )
+                st.session_state["query_engine"] = query_engine
 
             for message in st.session_state["messages"]:
                 with st.chat_message(message["role"]):
@@ -109,7 +104,7 @@ class StreamlitChatPack:
             if prompt := st.chat_input("Enter your natural language query about the database"):
                 with st.chat_message("user"):
                     st.write(prompt)
-                add_to_message_history("user", prompt)
+                st.session_state["messages"].append({"role": "user", "content": prompt})
 
                 if st.session_state["messages"][-1]["role"] != "assistant":
                     with st.spinner():
@@ -118,7 +113,7 @@ class StreamlitChatPack:
                             sql_query = f"```sql\n{response.metadata['sql_query']}\n```\n**Response:**\n{response.response}\n"
                             response_container = st.empty()
                             response_container.write(sql_query)
-                            add_to_message_history("assistant", sql_query)
+                            st.session_state["messages"].append({"role": "assistant", "content": sql_query})
         else:
             st.sidebar.error("Please upload a SQLite database file.")
             return
