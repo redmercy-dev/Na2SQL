@@ -22,7 +22,7 @@ from llama_index.core.retrievers import NLSQLRetriever
 import openai
 import os
 import pandas as pd
-from markdown import Markdown
+from markdown import markdown  # Corrected import
 
 os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
 
