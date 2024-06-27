@@ -1,35 +1,24 @@
 import streamlit as st
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, inspect
 from typing import Dict, Any
 
 from llama_index import (
     VectorStoreIndex,
     ServiceContext,
-    download_loader,
+    SimpleDirectoryReader,
+    StorageContext,
+    load_index_from_storage,
+    SQLDatabase,
 )
-from llama_index.llama_pack.base import BaseLlamaPack
+from llama_index.base_pack import BasePack
 from llama_index.llms import OpenAI
 import openai
 import os
 import pandas as pd
 
-from llama_index.llms.palm import PaLM
-
-from llama_index import (
-    SimpleDirectoryReader,
-    ServiceContext,
-    StorageContext,
-    VectorStoreIndex,
-    load_index_from_storage,
-)
-import sqlite3
-
-from llama_index import SQLDatabase, ServiceContext
-from llama_index.indices.struct_store import NLSQLTableQueryEngine
-
 os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
 
-class StreamlitChatPack(BaseLlamaPack):
+class StreamlitChatPack(BasePack):
 
     def __init__(
         self,
