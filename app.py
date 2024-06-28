@@ -1,24 +1,15 @@
 import streamlit as st
 from sqlalchemy import (
     create_engine,
-    MetaData,
-    Table,
-    Column,
-    String,
-    Integer,
-    select,
     inspect,
-    insert,
+    select,
     text
 )
+from sqlalchemy.exc import SQLAlchemyError
 from typing import Dict, Any
 from llama_index.core import SQLDatabase
 from llama_index.llms.openai import OpenAI
 from llama_index.core.query_engine import NLSQLTableQueryEngine
-from llama_index.core.indices.struct_store.sql_query import SQLTableRetrieverQueryEngine
-from llama_index.core.objects import SQLTableNodeMapping, ObjectIndex, SQLTableSchema
-from llama_index.core import VectorStoreIndex
-from llama_index.core.retrievers import NLSQLRetriever
 import openai
 import os
 import pandas as pd
@@ -53,18 +44,33 @@ class StreamlitChatPack:
         st.title(f"{self.page}💬")
         st.info("Hello to our AI powered SQL app. Pose any question and receive exact SQL queries.", icon="ℹ️")
 
-        # Upload a database file
-        db_file = st.sidebar.file_uploader("Upload your SQLite Database", type="db")
-        if db_file is not None:
-            # Save the uploaded file to a temporary location
-            temp_db_path = "temp_uploaded_db.db"
-            with open(temp_db_path, "wb") as f:
-                f.write(db_file.getbuffer())
+        # Allow the user to select the database type
+        db_type = st.sidebar.selectbox("Select Database Type", ["SQLite", "Other"])
 
-            # Create an SQLAlchemy engine using the uploaded file
-            engine = create_engine(f"sqlite:///{temp_db_path}")
+        if db_type == "SQLite":
+            db_file = st.sidebar.file_uploader("Upload your SQLite Database", type="db")
+            if db_file is not None:
+                temp_db_path = "temp_uploaded_db.db"
+                with open(temp_db_path, "wb") as f:
+                    f.write(db_file.getbuffer())
+                engine = create_engine(f"sqlite:///{temp_db_path}")
+            else:
+                st.sidebar.error("Please upload a SQLite database file.")
+                return
+        else:
+            db_url = st.sidebar.text_input("Enter your Database URL (e.g., postgresql://user:password@host/dbname)")
+            if db_url:
+                try:
+                    engine = create_engine(db_url)
+                except SQLAlchemyError as e:
+                    st.sidebar.error(f"Error connecting to the database: {str(e)}")
+                    return
+            else:
+                st.sidebar.error("Please enter a database URL.")
+                return
 
-            sql_database = SQLDatabase(engine)  # Include all tables from the uploaded database
+        try:
+            sql_database = SQLDatabase(engine)
 
             # Sidebar for database schema viewer
             st.sidebar.markdown("## Database Schema Viewer")
@@ -87,7 +93,7 @@ class StreamlitChatPack:
                 conn.close()
 
             # Initialize LLM with your desired settings
-            llm = OpenAI(temperature=1, model="gpt-4o")
+            llm = OpenAI(temperature=0.1, model="gpt-3.5-turbo")
 
             # Initialize the Query Engine
             query_engine = NLSQLTableQueryEngine(
@@ -109,14 +115,13 @@ class StreamlitChatPack:
                 if st.session_state["messages"][-1]["role"] != "assistant":
                     with st.spinner():
                         with st.chat_message("assistant"):
-                            response = st.session_state["query_engine"].query("User Question:"+prompt+". ")
+                            response = st.session_state["query_engine"].query("User Question:" + prompt + ". ")
                             sql_query = f"```sql\n{response.metadata['sql_query']}\n```\n**Response:**\n{response.response}\n"
                             response_container = st.empty()
                             response_container.write(sql_query)
                             st.session_state["messages"].append({"role": "assistant", "content": sql_query})
-        else:
-            st.sidebar.error("Please upload a SQLite database file.")
-            return
+        except SQLAlchemyError as e:
+            st.sidebar.error(f"Error processing the database: {str(e)}")
 
 if __name__ == "__main__":
     StreamlitChatPack(run_from_main=True).run()
