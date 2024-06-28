@@ -1,24 +1,14 @@
 import streamlit as st
 from sqlalchemy import (
     create_engine,
-    MetaData,
-    Table,
-    Column,
-    String,
-    Integer,
-    select,
     inspect,
-    insert,
+    select,
     text
 )
 from typing import Dict, Any
 from llama_index.core import SQLDatabase
 from llama_index.llms.openai import OpenAI
 from llama_index.core.query_engine import NLSQLTableQueryEngine
-from llama_index.core.indices.struct_store.sql_query import SQLTableRetrieverQueryEngine
-from llama_index.core.objects import SQLTableNodeMapping, ObjectIndex, SQLTableSchema
-from llama_index.core import VectorStoreIndex
-from llama_index.core.retrievers import NLSQLRetriever
 import openai
 import os
 import pandas as pd
@@ -109,10 +99,8 @@ class StreamlitChatPack:
                 if st.session_state["messages"][-1]["role"] != "assistant":
                     with st.spinner():
                         with st.chat_message("assistant"):
-                            response = st.session_state["query_engine"].query("User Question:"+prompt+". ")
-                            sql_query = f"
-sql\n{response.metadata['sql_query']}\n
-\n**Response:**\n{response.response}\n"
+                            response = st.session_state["query_engine"].query("User Question:" + prompt + ". ")
+                            sql_query = f"```sql\n{response.metadata['sql_query']}\n```\n**Response:**\n{response.response}\n"
                             response_container = st.empty()
                             response_container.write(sql_query)
                             st.session_state["messages"].append({"role": "assistant", "content": sql_query})
