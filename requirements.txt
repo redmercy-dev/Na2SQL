@@ -7,4 +7,3 @@ google-generativeai
 transformers
 torch
 llama-index-llms-openai
-psycopg2-binary==2.9.9
