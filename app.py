@@ -77,7 +77,7 @@ class StreamlitChatPack:
                 conn.close()
 
             # Initialize LLM with your desired settings
-            llm = OpenAI(temperature=1, model="gpt-4o")
+            llm = OpenAI(temperature=2, model="gpt-4o")
 
             # Initialize the Query Engine
             query_engine = NLSQLTableQueryEngine(
@@ -100,7 +100,9 @@ class StreamlitChatPack:
                     with st.spinner():
                         with st.chat_message("assistant"):
                             response = st.session_state["query_engine"].query("User Question:" + prompt + ". ")
-                            sql_query = f"```sql\n{response.metadata['sql_query']}\n```\n**Response:**\n{response.response}\n"
+                            sql_query = f"
+sql\n{response.metadata['sql_query']}\n
+\n**Response:**\n{response.response}\n"
                             response_container = st.empty()
                             response_container.write(sql_query)
                             st.session_state["messages"].append({"role": "assistant", "content": sql_query})
