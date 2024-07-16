@@ -6,6 +6,7 @@ from llama_index.llms.openai import OpenAI
 from llama_index.core.query_engine import NLSQLTableQueryEngine
 import os
 import pandas as pd
+import tempfile
 
 os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
 
@@ -33,19 +34,29 @@ class StreamlitChatPack:
             ]
 
         st.title(f"{self.page}💬")
-        st.info("Welcome to our AI-powered SQL app. Ask any question about your PostgreSQL database and receive exact SQL queries.", icon="ℹ️")
+        st.info("Welcome to our AI-powered SQL app. Upload your PostgreSQL database dump and ask questions about it.", icon="ℹ️")
 
-        # PostgreSQL connection details
-        db_host = st.sidebar.text_input("Database Host", "localhost")
-        db_port = st.sidebar.text_input("Database Port", "5432")
-        db_name = st.sidebar.text_input("Database Name")
-        db_user = st.sidebar.text_input("Database User")
-        db_password = st.sidebar.text_input("Database Password", type="password")
+        # Upload a database dump file
+        db_file = st.sidebar.file_uploader("Upload your PostgreSQL Database Dump", type="sql")
+        if db_file is not None:
+            # Save the uploaded file to a temporary location
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.sql') as temp_file:
+                temp_file.write(db_file.getvalue())
+                temp_db_path = temp_file.name
 
-        if all([db_host, db_port, db_name, db_user, db_password]):
             try:
-                # Create an SQLAlchemy engine for PostgreSQL
-                engine = create_engine(f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}")
+                # Create a temporary PostgreSQL database
+                temp_db_name = "temp_db_" + os.path.basename(temp_db_path).split('.')[0]
+                engine = create_engine(f"postgresql://postgres:postgres@localhost:5432/postgres")
+                with engine.connect() as conn:
+                    conn.execute(f"CREATE DATABASE {temp_db_name}")
+                    conn.close()
+
+                # Connect to the new database
+                engine = create_engine(f"postgresql://postgres:postgres@localhost:5432/{temp_db_name}")
+                
+                # Import the dump into the new database
+                os.system(f"psql -U postgres -d {temp_db_name} -f {temp_db_path}")
 
                 sql_database = SQLDatabase(engine)
 
@@ -57,7 +68,7 @@ class StreamlitChatPack:
 
                 # Function to get table data
                 def get_table_data(table_name, conn):
-                    query = f"SELECT * FROM {table_name} LIMIT 100"  # Limiting to 100 rows for performance
+                    query = f"SELECT * FROM {table_name} LIMIT 100"
                     df = pd.read_sql_query(query, conn)
                     return df
 
@@ -69,11 +80,11 @@ class StreamlitChatPack:
                     st.sidebar.dataframe(df)
 
                 # Initialize LLM with your desired settings
-                llm = OpenAI(temperature=0.5, model="gpt-4o")
+                llm = OpenAI(temperature=0.7, model="gpt-4o")
 
                 # Initialize the Query Engine
                 query_engine = NLSQLTableQueryEngine(
-                    sql_database=sql_database, tables=[selected_table], llm=llm
+                    sql_database=sql_database, tables=table_names, llm=llm
                 )
 
                 if "query_engine" not in st.session_state:
@@ -107,9 +118,16 @@ class StreamlitChatPack:
                                 st.dataframe(result_df)
 
             except Exception as e:
-                st.error(f"Error connecting to the database: {str(e)}")
+                st.error(f"Error processing the database: {str(e)}")
+            finally:
+                # Clean up: remove the temporary file and database
+                os.unlink(temp_db_path)
+                engine = create_engine(f"postgresql://postgres:postgres@localhost:5432/postgres")
+                with engine.connect() as conn:
+                    conn.execute(f"DROP DATABASE IF EXISTS {temp_db_name}")
+                    conn.close()
         else:
-            st.sidebar.error("Please provide all the required database connection details.")
+            st.sidebar.error("Please upload a PostgreSQL database dump file.")
 
 if __name__ == "__main__":
     StreamlitChatPack(run_from_main=True).run()
