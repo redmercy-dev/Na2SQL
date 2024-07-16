@@ -1,15 +1,9 @@
 import streamlit as st
-from sqlalchemy import (
-    create_engine,
-    inspect,
-    select,
-    text
-)
+from sqlalchemy import create_engine, inspect
 from typing import Dict, Any
 from llama_index.core import SQLDatabase
 from llama_index.llms.openai import OpenAI
 from llama_index.core.query_engine import NLSQLTableQueryEngine
-import openai
 import os
 import pandas as pd
 
@@ -100,9 +94,9 @@ class StreamlitChatPack:
                     with st.spinner():
                         with st.chat_message("assistant"):
                             response = st.session_state["query_engine"].query("User Question:" + prompt + ". ")
-                            sql_query = f"
+                            sql_query = f"""
 sql\n{response.metadata['sql_query']}\n
-\n**Response:**\n{response.response}\n"
+\n**Response:**\n{response.response}\n"""
                             response_container = st.empty()
                             response_container.write(sql_query)
                             st.session_state["messages"].append({"role": "assistant", "content": sql_query})
